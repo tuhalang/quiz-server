@@ -1,0 +1,2 @@
+DROP IF EXISTS answer;
+DROP IF EXISTS quiz;
