@@ -60,11 +60,11 @@ func (server *QuizServer) updateQuiz(ctx *gin.Context) {
 			String: req.Answer,
 			Valid:  true,
 		},
-		Duration: req.Duration,
 	})
 
 	if quizErr != nil {
 		ctx.JSON(quizErr.Code, quizErr)
+		return
 	}
 	ctx.JSON(http.StatusOK, quiz)
 }

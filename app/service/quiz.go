@@ -14,7 +14,7 @@ const (
 
 func (service *QuizService) UpdateQuiz(reqQuiz db.Quiz) (*db.Quiz, *util.QuizError) {
 
-	quiz, err := service.store.Queries.FindById(context.Background(), reqQuiz.ID)
+	quiz, err := service.store.Queries.FindQuizById(context.Background(), reqQuiz.ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			quiz, err = service.store.Queries.CreateQuiz(context.Background(), db.CreateQuizParams{
@@ -24,7 +24,6 @@ func (service *QuizService) UpdateQuiz(reqQuiz db.Quiz) (*db.Quiz, *util.QuizErr
 				HashContent: reqQuiz.HashContent,
 				Answer:      reqQuiz.Answer,
 				HashAnswer:  reqQuiz.HashAnswer,
-				Duration:    reqQuiz.Duration,
 				Status:      StatusDraft,
 			})
 
@@ -38,14 +37,14 @@ func (service *QuizService) UpdateQuiz(reqQuiz db.Quiz) (*db.Quiz, *util.QuizErr
 	}
 
 	if quiz.HashContent == util.Keccak256(reqQuiz.Content.String) {
-		quiz, err = service.store.Queries.UpdateContent(context.Background(), db.UpdateContentParams{
+		quiz, err = service.store.Queries.UpdateQuizContent(context.Background(), db.UpdateQuizContentParams{
 			ID:      quiz.ID,
 			Content: reqQuiz.Content,
 		})
 	}
 
 	if reqQuiz.Answer.Valid && quiz.HashAnswer.Valid && quiz.HashAnswer.String == util.Keccak256(reqQuiz.Answer.String) {
-		quiz, err = service.store.Queries.UpdateAnswer(context.Background(), db.UpdateAnswerParams{
+		quiz, err = service.store.Queries.UpdateQuizAnswer(context.Background(), db.UpdateQuizAnswerParams{
 			ID:     quiz.ID,
 			Answer: reqQuiz.Answer,
 		})

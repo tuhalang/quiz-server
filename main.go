@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"github.com/tuhalang/quiz-server/app/api"
+	"github.com/tuhalang/quiz-server/app/event"
 	"github.com/tuhalang/quiz-server/app/service"
 	"log"
 	"os"
@@ -29,11 +30,16 @@ func main() {
 
 	store := db.NewStore(conn)
 
+	quizEvent, err := event.NewQuizEvent(store)
+	if err != nil {
+		log.Fatal("cannot init event: ", err)
+	}
+
 	quizService, err := service.NewQuizService(store)
 	if err != nil {
 		log.Fatal("cannot init service: ", err)
 	}
-	quizServer, err := api.NewQuizServer(quizService)
+	quizServer, err := api.NewQuizServer(quizService, quizEvent)
 	if err != nil {
 		log.Fatal("cannot init server: ", err)
 	}

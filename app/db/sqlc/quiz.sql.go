@@ -8,23 +8,23 @@ import (
 	"database/sql"
 )
 
-const count = `-- name: Count :one
+const countQuiz = `-- name: CountQuiz :one
 SELECT count(*) FROM quiz
 `
 
-func (q *Queries) Count(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, count)
+func (q *Queries) CountQuiz(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countQuiz)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
-const countByStatus = `-- name: CountByStatus :one
+const countQuizByStatus = `-- name: CountQuizByStatus :one
 SELECT count(*) FROM quiz WHERE status = $1
 `
 
-func (q *Queries) CountByStatus(ctx context.Context, status int32) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countByStatus, status)
+func (q *Queries) CountQuizByStatus(ctx context.Context, status int32) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countQuizByStatus, status)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -38,22 +38,22 @@ INSERT INTO quiz (
     hash_content,
     answer,
     hash_answer,
-    duration,
+    timestamp_created,
     status
 ) values (
     $1, $2, $3, $4, $5, $6, $7, $8
-) RETURNING id, owner, content, hash_content, answer, hash_answer, duration, status, created_at
+) RETURNING id, owner, content, hash_content, answer, hash_answer, timestamp_created, status, created_at
 `
 
 type CreateQuizParams struct {
-	ID          string         `json:"id"`
-	Owner       string         `json:"owner"`
-	Content     sql.NullString `json:"content"`
-	HashContent string         `json:"hash_content"`
-	Answer      sql.NullString `json:"answer"`
-	HashAnswer  sql.NullString `json:"hash_answer"`
-	Duration    int32          `json:"duration"`
-	Status      int32          `json:"status"`
+	ID               string         `json:"id"`
+	Owner            string         `json:"owner"`
+	Content          sql.NullString `json:"content"`
+	HashContent      string         `json:"hash_content"`
+	Answer           sql.NullString `json:"answer"`
+	HashAnswer       sql.NullString `json:"hash_answer"`
+	TimestampCreated int64          `json:"timestamp_created"`
+	Status           int32          `json:"status"`
 }
 
 func (q *Queries) CreateQuiz(ctx context.Context, arg CreateQuizParams) (Quiz, error) {
@@ -64,7 +64,7 @@ func (q *Queries) CreateQuiz(ctx context.Context, arg CreateQuizParams) (Quiz, e
 		arg.HashContent,
 		arg.Answer,
 		arg.HashAnswer,
-		arg.Duration,
+		arg.TimestampCreated,
 		arg.Status,
 	)
 	var i Quiz
@@ -75,19 +75,28 @@ func (q *Queries) CreateQuiz(ctx context.Context, arg CreateQuizParams) (Quiz, e
 		&i.HashContent,
 		&i.Answer,
 		&i.HashAnswer,
-		&i.Duration,
+		&i.TimestampCreated,
 		&i.Status,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
-const findById = `-- name: FindById :one
-SELECT id, owner, content, hash_content, answer, hash_answer, duration, status, created_at FROM quiz WHERE id = $1 LIMIT 1
+const deleteQuiz = `-- name: DeleteQuiz :exec
+DELETE FROM quiz WHERE ID = $1
 `
 
-func (q *Queries) FindById(ctx context.Context, id string) (Quiz, error) {
-	row := q.db.QueryRowContext(ctx, findById, id)
+func (q *Queries) DeleteQuiz(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, deleteQuiz, id)
+	return err
+}
+
+const findQuizById = `-- name: FindQuizById :one
+SELECT id, owner, content, hash_content, answer, hash_answer, timestamp_created, status, created_at FROM quiz WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) FindQuizById(ctx context.Context, id string) (Quiz, error) {
+	row := q.db.QueryRowContext(ctx, findQuizById, id)
 	var i Quiz
 	err := row.Scan(
 		&i.ID,
@@ -96,25 +105,25 @@ func (q *Queries) FindById(ctx context.Context, id string) (Quiz, error) {
 		&i.HashContent,
 		&i.Answer,
 		&i.HashAnswer,
-		&i.Duration,
+		&i.TimestampCreated,
 		&i.Status,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
-const findByStatus = `-- name: FindByStatus :many
-SELECT id, owner, content, hash_content, answer, hash_answer, duration, status, created_at FROM quiz WHERE status = $1 ORDER BY created_at DESC LIMIT $3 OFFSET $2
+const findQuizByStatus = `-- name: FindQuizByStatus :many
+SELECT id, owner, content, hash_content, answer, hash_answer, timestamp_created, status, created_at FROM quiz WHERE status = $1 ORDER BY created_at DESC LIMIT $3 OFFSET $2
 `
 
-type FindByStatusParams struct {
+type FindQuizByStatusParams struct {
 	Status int32 `json:"status"`
 	Offset int32 `json:"offset"`
 	Limit  int32 `json:"limit"`
 }
 
-func (q *Queries) FindByStatus(ctx context.Context, arg FindByStatusParams) ([]Quiz, error) {
-	rows, err := q.db.QueryContext(ctx, findByStatus, arg.Status, arg.Offset, arg.Limit)
+func (q *Queries) FindQuizByStatus(ctx context.Context, arg FindQuizByStatusParams) ([]Quiz, error) {
+	rows, err := q.db.QueryContext(ctx, findQuizByStatus, arg.Status, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +138,7 @@ func (q *Queries) FindByStatus(ctx context.Context, arg FindByStatusParams) ([]Q
 			&i.HashContent,
 			&i.Answer,
 			&i.HashAnswer,
-			&i.Duration,
+			&i.TimestampCreated,
 			&i.Status,
 			&i.CreatedAt,
 		); err != nil {
@@ -147,7 +156,7 @@ func (q *Queries) FindByStatus(ctx context.Context, arg FindByStatusParams) ([]Q
 }
 
 const finishQuiz = `-- name: FinishQuiz :one
-UPDATE quiz SET status = 0 WHERE id = $1 AND status = 1 RETURNING id, owner, content, hash_content, answer, hash_answer, duration, status, created_at
+UPDATE quiz SET status = 0 WHERE id = $1 AND status = 1 RETURNING id, owner, content, hash_content, answer, hash_answer, timestamp_created, status, created_at
 `
 
 func (q *Queries) FinishQuiz(ctx context.Context, id string) (Quiz, error) {
@@ -160,24 +169,24 @@ func (q *Queries) FinishQuiz(ctx context.Context, id string) (Quiz, error) {
 		&i.HashContent,
 		&i.Answer,
 		&i.HashAnswer,
-		&i.Duration,
+		&i.TimestampCreated,
 		&i.Status,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
-const updateAnswer = `-- name: UpdateAnswer :one
-UPDATE quiz SET answer = $2 where id = $1 RETURNING id, owner, content, hash_content, answer, hash_answer, duration, status, created_at
+const updateQuizAnswer = `-- name: UpdateQuizAnswer :one
+UPDATE quiz SET answer = $2 where id = $1 RETURNING id, owner, content, hash_content, answer, hash_answer, timestamp_created, status, created_at
 `
 
-type UpdateAnswerParams struct {
+type UpdateQuizAnswerParams struct {
 	ID     string         `json:"id"`
 	Answer sql.NullString `json:"answer"`
 }
 
-func (q *Queries) UpdateAnswer(ctx context.Context, arg UpdateAnswerParams) (Quiz, error) {
-	row := q.db.QueryRowContext(ctx, updateAnswer, arg.ID, arg.Answer)
+func (q *Queries) UpdateQuizAnswer(ctx context.Context, arg UpdateQuizAnswerParams) (Quiz, error) {
+	row := q.db.QueryRowContext(ctx, updateQuizAnswer, arg.ID, arg.Answer)
 	var i Quiz
 	err := row.Scan(
 		&i.ID,
@@ -186,24 +195,24 @@ func (q *Queries) UpdateAnswer(ctx context.Context, arg UpdateAnswerParams) (Qui
 		&i.HashContent,
 		&i.Answer,
 		&i.HashAnswer,
-		&i.Duration,
+		&i.TimestampCreated,
 		&i.Status,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
-const updateContent = `-- name: UpdateContent :one
-UPDATE quiz SET content = $2 WHERE id = $1 RETURNING id, owner, content, hash_content, answer, hash_answer, duration, status, created_at
+const updateQuizContent = `-- name: UpdateQuizContent :one
+UPDATE quiz SET content = $2 WHERE id = $1 RETURNING id, owner, content, hash_content, answer, hash_answer, timestamp_created, status, created_at
 `
 
-type UpdateContentParams struct {
+type UpdateQuizContentParams struct {
 	ID      string         `json:"id"`
 	Content sql.NullString `json:"content"`
 }
 
-func (q *Queries) UpdateContent(ctx context.Context, arg UpdateContentParams) (Quiz, error) {
-	row := q.db.QueryRowContext(ctx, updateContent, arg.ID, arg.Content)
+func (q *Queries) UpdateQuizContent(ctx context.Context, arg UpdateQuizContentParams) (Quiz, error) {
+	row := q.db.QueryRowContext(ctx, updateQuizContent, arg.ID, arg.Content)
 	var i Quiz
 	err := row.Scan(
 		&i.ID,
@@ -212,7 +221,7 @@ func (q *Queries) UpdateContent(ctx context.Context, arg UpdateContentParams) (Q
 		&i.HashContent,
 		&i.Answer,
 		&i.HashAnswer,
-		&i.Duration,
+		&i.TimestampCreated,
 		&i.Status,
 		&i.CreatedAt,
 	)

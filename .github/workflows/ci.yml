@@ -2,14 +2,16 @@ name: ci-test
 
 on:
   push:
-    branches: [ master, develop ]
+    branches:
+      - "**"
   pull_request:
-    branches: [ master, develop ]
+    branches:
+      - "**"
 
 jobs:
 
   test:
-    name: Test
+    name: Test - Build
     runs-on: ubuntu-latest
 
     services:
@@ -49,3 +51,6 @@ jobs:
 
       - name: Test
         run: make test
+
+      - name: Build
+        run: make build
