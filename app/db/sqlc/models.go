@@ -7,22 +7,33 @@ import (
 )
 
 type Answer struct {
-	ID          string         `json:"id"`
-	QuizID      sql.NullString `json:"quiz_id"`
-	Owner       string         `json:"owner"`
-	Content     string         `json:"content"`
-	HashContent string         `json:"hash_content"`
-	CreatedAt   sql.NullTime   `json:"created_at"`
+	ID               string         `json:"id"`
+	QuizID           string         `json:"quiz_id"`
+	Owner            string         `json:"owner"`
+	Content          sql.NullString `json:"content"`
+	HashContent      string         `json:"hash_content"`
+	TimestampCreated int64          `json:"timestamp_created"`
+	Status           int32          `json:"status"`
+	CreatedAt        sql.NullTime   `json:"created_at"`
+}
+
+type EventLog struct {
+	ChainID         string       `json:"chain_id"`
+	ContractAddress string       `json:"contract_address"`
+	BlockNumber     int64        `json:"block_number"`
+	StepNumber      int64        `json:"step_number"`
+	CreatedAt       sql.NullTime `json:"created_at"`
+	UpdatedAt       sql.NullTime `json:"updated_at"`
 }
 
 type Quiz struct {
-	ID          string         `json:"id"`
-	Owner       string         `json:"owner"`
-	Content     sql.NullString `json:"content"`
-	HashContent string         `json:"hash_content"`
-	Answer      sql.NullString `json:"answer"`
-	HashAnswer  sql.NullString `json:"hash_answer"`
-	Duration    int32          `json:"duration"`
-	Status      int32          `json:"status"`
-	CreatedAt   sql.NullTime   `json:"created_at"`
+	ID               string         `json:"id"`
+	Owner            string         `json:"owner"`
+	Content          sql.NullString `json:"content"`
+	HashContent      string         `json:"hash_content"`
+	Answer           sql.NullString `json:"answer"`
+	HashAnswer       sql.NullString `json:"hash_answer"`
+	TimestampCreated int64          `json:"timestamp_created"`
+	Status           int32          `json:"status"`
+	CreatedAt        sql.NullTime   `json:"created_at"`
 }

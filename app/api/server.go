@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/tuhalang/quiz-server/app/event"
 	"github.com/tuhalang/quiz-server/app/service"
 	"net/http"
 	"os"
@@ -9,12 +10,14 @@ import "github.com/gin-gonic/gin"
 
 type QuizServer struct {
 	service *service.QuizService
+	event   *event.QuizEvent
 	router  *gin.Engine
 }
 
-func NewQuizServer(service *service.QuizService) (*QuizServer, error) {
+func NewQuizServer(service *service.QuizService, event *event.QuizEvent) (*QuizServer, error) {
 	server := QuizServer{
 		service: service,
+		event:   event,
 	}
 	server.setupRouter()
 	return &server, nil
@@ -32,6 +35,8 @@ func (server *QuizServer) setupRouter() {
 	router.GET(contextPath+"/quizzes/:id", server.getQuiz)
 	router.GET(contextPath+"/quizzes", server.listQuizzes)
 	router.POST(contextPath+"/quizzes", server.updateQuiz)
+
+	router.GET(contextPath+"/event/:token", server.getEvents)
 
 	server.router = router
 }
