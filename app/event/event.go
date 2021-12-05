@@ -41,7 +41,7 @@ func (event *QuizEvent) Filter(wss, address string, blockNumber, step int64) ([]
 	if err != nil {
 		return nil, err
 	}
-	if blockNumber != 0 {
+	if blockNumber != 0 && step > 0 {
 		query.ToBlock = big.NewInt(blockNumber + step)
 	}
 	logs, err := client.FilterLogs(context.Background(), *query)

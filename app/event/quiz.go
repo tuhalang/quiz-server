@@ -87,7 +87,7 @@ func (event *QuizEvent) LoadEvents() *util.QuizError {
 					createQuizParam.Content = quiz.Content
 				}
 				if util.Keccak256(quiz.Answer.String) == answer {
-					createQuizParam.Answer = quiz.Content
+					createQuizParam.Answer = quiz.Answer
 				}
 				err = event.store.DeleteQuiz(context.Background(), id)
 				if err != nil {
@@ -145,7 +145,8 @@ func (event *QuizEvent) LoadEvents() *util.QuizError {
 			id := v.Topics[1].String()
 			_, err := event.store.FinishQuiz(context.Background(), id)
 			if err != nil {
-				return util.NewQuizError(500, err.Error())
+				log.Println(err)
+				//return util.NewQuizError(500, err.Error())
 			}
 		}
 

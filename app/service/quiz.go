@@ -5,12 +5,25 @@ import (
 	"database/sql"
 	db "github.com/tuhalang/quiz-server/app/db/sqlc"
 	"github.com/tuhalang/quiz-server/app/util"
+	"log"
 )
 
 const (
 	// StatusDraft is a status when quiz is unconfirmed
 	StatusDraft = -1
 )
+
+func (service *QuizService) GetQuiz(id string) (*db.Quiz, *util.QuizError) {
+	quiz, err := service.store.Queries.FindQuizById(context.Background(), id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, util.NewQuizError(404, "Quiz not found")
+		}
+		log.Println(err)
+		return nil, util.NewQuizError(500, err.Error())
+	}
+	return &quiz, nil
+}
 
 func (service *QuizService) UpdateQuiz(reqQuiz db.Quiz) (*db.Quiz, *util.QuizError) {
 
@@ -32,7 +45,7 @@ func (service *QuizService) UpdateQuiz(reqQuiz db.Quiz) (*db.Quiz, *util.QuizErr
 			}
 			return &quiz, nil
 		}
-
+		log.Print(err)
 		return nil, util.NewQuizError(500, err.Error())
 	}
 
