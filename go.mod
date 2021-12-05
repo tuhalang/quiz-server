@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/ethereum/go-ethereum v1.10.13
+	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.7
 	github.com/joho/godotenv v1.4.0
 	github.com/lib/pq v1.10.4

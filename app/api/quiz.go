@@ -7,23 +7,18 @@ import (
 	"net/http"
 )
 
-type getQuizRequest struct {
-	ID string `uri:"id" binding:"required"`
-}
-
 func (server *QuizServer) getQuiz(ctx *gin.Context) {
 	var req getQuizRequest
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
-
-}
-
-type listQuizzesRequest struct {
-	Status int32 `form:"status" binding:"required,min=0,max=1"`
-	Page   int32 `form:"page" binding:"required,min=1"`
-	Size   int32 `form:"size" biding:"required,min=5,max=30"`
+	quiz, quizErr := server.service.GetQuiz(req.ID)
+	if quizErr != nil {
+		ctx.JSON(quizErr.Code, quizErr)
+		return
+	}
+	ctx.JSON(http.StatusOK, toQuizResponse(quiz))
 }
 
 func (server *QuizServer) listQuizzes(ctx *gin.Context) {
@@ -32,14 +27,6 @@ func (server *QuizServer) listQuizzes(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
-}
-
-type updateQuizRequest struct {
-	ID       string `json:"id" binding:"required"`
-	Owner    string `json:"owner"`
-	Content  string `json:"content" binding:"required"`
-	Answer   string `json:"answer"`
-	Duration int32  `json:"duration"`
 }
 
 func (server *QuizServer) updateQuiz(ctx *gin.Context) {
@@ -61,6 +48,8 @@ func (server *QuizServer) updateQuiz(ctx *gin.Context) {
 			Valid:  true,
 		},
 	})
+
+	server.event.LoadEvents()
 
 	if quizErr != nil {
 		ctx.JSON(quizErr.Code, quizErr)
