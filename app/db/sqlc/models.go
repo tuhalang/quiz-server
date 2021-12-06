@@ -8,18 +8,23 @@ import (
 
 type Answer struct {
 	ID               string         `json:"id"`
+	Index            int32          `json:"index"`
 	QuizID           string         `json:"quiz_id"`
 	Owner            string         `json:"owner"`
 	Content          sql.NullString `json:"content"`
+	Vote             int32          `json:"vote"`
 	HashContent      string         `json:"hash_content"`
 	TimestampCreated int64          `json:"timestamp_created"`
 	Status           int32          `json:"status"`
 	CreatedAt        sql.NullTime   `json:"created_at"`
 }
 
-type EventLog struct {
+type ChainConfig struct {
+	ID              int32        `json:"id"`
 	ChainID         string       `json:"chain_id"`
 	ContractAddress string       `json:"contract_address"`
+	RpcUrl          string       `json:"rpc_url"`
+	WssUrl          string       `json:"wss_url"`
 	BlockNumber     int64        `json:"block_number"`
 	StepNumber      int64        `json:"step_number"`
 	CreatedAt       sql.NullTime `json:"created_at"`
@@ -28,11 +33,16 @@ type EventLog struct {
 
 type Quiz struct {
 	ID               string         `json:"id"`
+	Type             int32          `json:"type"`
 	Owner            string         `json:"owner"`
 	Content          sql.NullString `json:"content"`
 	HashContent      string         `json:"hash_content"`
 	Answer           sql.NullString `json:"answer"`
 	HashAnswer       sql.NullString `json:"hash_answer"`
+	Reward           sql.NullInt64  `json:"reward"`
+	Winner           sql.NullString `json:"winner"`
+	Duration         int64          `json:"duration"`
+	DurationVoting   sql.NullInt64  `json:"duration_voting"`
 	TimestampCreated int64          `json:"timestamp_created"`
 	Status           int32          `json:"status"`
 	CreatedAt        sql.NullTime   `json:"created_at"`

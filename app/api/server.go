@@ -45,6 +45,8 @@ func (server *QuizServer) setupRouter() {
 	router.GET(contextPath+"/quizzes", server.listQuizzes)
 	router.POST(contextPath+"/quizzes", server.updateQuiz)
 
+	router.POST(contextPath+"/answers", server.updateAnswer)
+
 	router.GET(contextPath+"/event/:token", server.getEvents)
 
 	server.router = router

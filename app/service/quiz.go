@@ -8,11 +8,6 @@ import (
 	"log"
 )
 
-const (
-	// StatusDraft is a status when quiz is unconfirmed
-	StatusDraft = -1
-)
-
 func (service *QuizService) GetQuiz(id string) (*db.Quiz, *util.QuizError) {
 	quiz, err := service.store.Queries.FindQuizById(context.Background(), id)
 	if err != nil {
@@ -31,13 +26,11 @@ func (service *QuizService) UpdateQuiz(reqQuiz db.Quiz) (*db.Quiz, *util.QuizErr
 	if err != nil {
 		if err == sql.ErrNoRows {
 			quiz, err = service.store.Queries.CreateQuiz(context.Background(), db.CreateQuizParams{
-				ID:          reqQuiz.ID,
-				Owner:       reqQuiz.Owner,
-				Content:     reqQuiz.Content,
-				HashContent: reqQuiz.HashContent,
-				Answer:      reqQuiz.Answer,
-				HashAnswer:  reqQuiz.HashAnswer,
-				Status:      StatusDraft,
+				ID:      reqQuiz.ID,
+				Owner:   reqQuiz.Owner,
+				Content: reqQuiz.Content,
+				Answer:  reqQuiz.Answer,
+				Status:  util.StatusDraft,
 			})
 
 			if err != nil {

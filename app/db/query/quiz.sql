@@ -1,15 +1,19 @@
 -- name: CreateQuiz :one
 INSERT INTO quiz (
-    id,
-    owner,
-    content,
-    hash_content,
-    answer,
-    hash_answer,
-    timestamp_created,
-    status
+    "id",
+    "type",
+    "owner",
+    "content",
+    "hash_content",
+    "answer",
+    "hash_answer",
+    "reward",
+    "duration",
+    "duration_voting",
+    "timestamp_created",
+    "status"
 ) values (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 ) RETURNING *;
 
 -- name: UpdateQuizContent :one

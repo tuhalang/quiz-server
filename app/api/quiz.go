@@ -49,7 +49,7 @@ func (server *QuizServer) updateQuiz(ctx *gin.Context) {
 		},
 	})
 
-	server.event.LoadEvents()
+	server.event.SnapshotQuiz(req.ID)
 
 	if quizErr != nil {
 		ctx.JSON(quizErr.Code, quizErr)

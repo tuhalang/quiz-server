@@ -32,26 +32,34 @@ func (q *Queries) CountQuizByStatus(ctx context.Context, status int32) (int64, e
 
 const createQuiz = `-- name: CreateQuiz :one
 INSERT INTO quiz (
-    id,
-    owner,
-    content,
-    hash_content,
-    answer,
-    hash_answer,
-    timestamp_created,
-    status
+    "id",
+    "type",
+    "owner",
+    "content",
+    "hash_content",
+    "answer",
+    "hash_answer",
+    "reward",
+    "duration",
+    "duration_voting",
+    "timestamp_created",
+    "status"
 ) values (
-    $1, $2, $3, $4, $5, $6, $7, $8
-) RETURNING id, owner, content, hash_content, answer, hash_answer, timestamp_created, status, created_at
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+) RETURNING id, type, owner, content, hash_content, answer, hash_answer, reward, winner, duration, duration_voting, timestamp_created, status, created_at
 `
 
 type CreateQuizParams struct {
 	ID               string         `json:"id"`
+	Type             int32          `json:"type"`
 	Owner            string         `json:"owner"`
 	Content          sql.NullString `json:"content"`
 	HashContent      string         `json:"hash_content"`
 	Answer           sql.NullString `json:"answer"`
 	HashAnswer       sql.NullString `json:"hash_answer"`
+	Reward           sql.NullInt64  `json:"reward"`
+	Duration         int64          `json:"duration"`
+	DurationVoting   sql.NullInt64  `json:"duration_voting"`
 	TimestampCreated int64          `json:"timestamp_created"`
 	Status           int32          `json:"status"`
 }
@@ -59,22 +67,31 @@ type CreateQuizParams struct {
 func (q *Queries) CreateQuiz(ctx context.Context, arg CreateQuizParams) (Quiz, error) {
 	row := q.db.QueryRowContext(ctx, createQuiz,
 		arg.ID,
+		arg.Type,
 		arg.Owner,
 		arg.Content,
 		arg.HashContent,
 		arg.Answer,
 		arg.HashAnswer,
+		arg.Reward,
+		arg.Duration,
+		arg.DurationVoting,
 		arg.TimestampCreated,
 		arg.Status,
 	)
 	var i Quiz
 	err := row.Scan(
 		&i.ID,
+		&i.Type,
 		&i.Owner,
 		&i.Content,
 		&i.HashContent,
 		&i.Answer,
 		&i.HashAnswer,
+		&i.Reward,
+		&i.Winner,
+		&i.Duration,
+		&i.DurationVoting,
 		&i.TimestampCreated,
 		&i.Status,
 		&i.CreatedAt,
@@ -92,7 +109,7 @@ func (q *Queries) DeleteQuiz(ctx context.Context, id string) error {
 }
 
 const findQuizById = `-- name: FindQuizById :one
-SELECT id, owner, content, hash_content, answer, hash_answer, timestamp_created, status, created_at FROM quiz WHERE id = $1 LIMIT 1
+SELECT id, type, owner, content, hash_content, answer, hash_answer, reward, winner, duration, duration_voting, timestamp_created, status, created_at FROM quiz WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) FindQuizById(ctx context.Context, id string) (Quiz, error) {
@@ -100,11 +117,16 @@ func (q *Queries) FindQuizById(ctx context.Context, id string) (Quiz, error) {
 	var i Quiz
 	err := row.Scan(
 		&i.ID,
+		&i.Type,
 		&i.Owner,
 		&i.Content,
 		&i.HashContent,
 		&i.Answer,
 		&i.HashAnswer,
+		&i.Reward,
+		&i.Winner,
+		&i.Duration,
+		&i.DurationVoting,
 		&i.TimestampCreated,
 		&i.Status,
 		&i.CreatedAt,
@@ -113,7 +135,7 @@ func (q *Queries) FindQuizById(ctx context.Context, id string) (Quiz, error) {
 }
 
 const findQuizByStatus = `-- name: FindQuizByStatus :many
-SELECT id, owner, content, hash_content, answer, hash_answer, timestamp_created, status, created_at FROM quiz WHERE status = $1 ORDER BY created_at DESC LIMIT $3 OFFSET $2
+SELECT id, type, owner, content, hash_content, answer, hash_answer, reward, winner, duration, duration_voting, timestamp_created, status, created_at FROM quiz WHERE status = $1 ORDER BY created_at DESC LIMIT $3 OFFSET $2
 `
 
 type FindQuizByStatusParams struct {
@@ -133,11 +155,16 @@ func (q *Queries) FindQuizByStatus(ctx context.Context, arg FindQuizByStatusPara
 		var i Quiz
 		if err := rows.Scan(
 			&i.ID,
+			&i.Type,
 			&i.Owner,
 			&i.Content,
 			&i.HashContent,
 			&i.Answer,
 			&i.HashAnswer,
+			&i.Reward,
+			&i.Winner,
+			&i.Duration,
+			&i.DurationVoting,
 			&i.TimestampCreated,
 			&i.Status,
 			&i.CreatedAt,
@@ -156,7 +183,7 @@ func (q *Queries) FindQuizByStatus(ctx context.Context, arg FindQuizByStatusPara
 }
 
 const finishQuiz = `-- name: FinishQuiz :one
-UPDATE quiz SET status = 0 WHERE id = $1 AND status = 1 RETURNING id, owner, content, hash_content, answer, hash_answer, timestamp_created, status, created_at
+UPDATE quiz SET status = 0 WHERE id = $1 AND status = 1 RETURNING id, type, owner, content, hash_content, answer, hash_answer, reward, winner, duration, duration_voting, timestamp_created, status, created_at
 `
 
 func (q *Queries) FinishQuiz(ctx context.Context, id string) (Quiz, error) {
@@ -164,11 +191,16 @@ func (q *Queries) FinishQuiz(ctx context.Context, id string) (Quiz, error) {
 	var i Quiz
 	err := row.Scan(
 		&i.ID,
+		&i.Type,
 		&i.Owner,
 		&i.Content,
 		&i.HashContent,
 		&i.Answer,
 		&i.HashAnswer,
+		&i.Reward,
+		&i.Winner,
+		&i.Duration,
+		&i.DurationVoting,
 		&i.TimestampCreated,
 		&i.Status,
 		&i.CreatedAt,
@@ -177,7 +209,7 @@ func (q *Queries) FinishQuiz(ctx context.Context, id string) (Quiz, error) {
 }
 
 const updateQuizAnswer = `-- name: UpdateQuizAnswer :one
-UPDATE quiz SET answer = $2 where id = $1 RETURNING id, owner, content, hash_content, answer, hash_answer, timestamp_created, status, created_at
+UPDATE quiz SET answer = $2 where id = $1 RETURNING id, type, owner, content, hash_content, answer, hash_answer, reward, winner, duration, duration_voting, timestamp_created, status, created_at
 `
 
 type UpdateQuizAnswerParams struct {
@@ -190,11 +222,16 @@ func (q *Queries) UpdateQuizAnswer(ctx context.Context, arg UpdateQuizAnswerPara
 	var i Quiz
 	err := row.Scan(
 		&i.ID,
+		&i.Type,
 		&i.Owner,
 		&i.Content,
 		&i.HashContent,
 		&i.Answer,
 		&i.HashAnswer,
+		&i.Reward,
+		&i.Winner,
+		&i.Duration,
+		&i.DurationVoting,
 		&i.TimestampCreated,
 		&i.Status,
 		&i.CreatedAt,
@@ -203,7 +240,7 @@ func (q *Queries) UpdateQuizAnswer(ctx context.Context, arg UpdateQuizAnswerPara
 }
 
 const updateQuizContent = `-- name: UpdateQuizContent :one
-UPDATE quiz SET content = $2 WHERE id = $1 RETURNING id, owner, content, hash_content, answer, hash_answer, timestamp_created, status, created_at
+UPDATE quiz SET content = $2 WHERE id = $1 RETURNING id, type, owner, content, hash_content, answer, hash_answer, reward, winner, duration, duration_voting, timestamp_created, status, created_at
 `
 
 type UpdateQuizContentParams struct {
@@ -216,11 +253,16 @@ func (q *Queries) UpdateQuizContent(ctx context.Context, arg UpdateQuizContentPa
 	var i Quiz
 	err := row.Scan(
 		&i.ID,
+		&i.Type,
 		&i.Owner,
 		&i.Content,
 		&i.HashContent,
 		&i.Answer,
 		&i.HashAnswer,
+		&i.Reward,
+		&i.Winner,
+		&i.Duration,
+		&i.DurationVoting,
 		&i.TimestampCreated,
 		&i.Status,
 		&i.CreatedAt,

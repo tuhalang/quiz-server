@@ -1,2 +1,2 @@
-INSERT INTO event_log(chain_id, contract_address)
-VALUES ('89', '0x15d14572B2505F9fdd47Bb18D5345663ce993672');
+INSERT INTO chain_config(chain_id, contract_address, rpc_url, wss_url)
+VALUES ('89', '0x37E807fEEB047C1Fc04Bd1a6B1d35471B2C6bf03', 'https://rpc.testnet.tomochain.com', 'wss://ws.testnet.tomochain.com');

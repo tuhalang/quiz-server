@@ -3,9 +3,13 @@ package event
 import (
 	"context"
 	"github.com/ethereum/go-ethereum/core/types"
+	store "github.com/tuhalang/quiz-server/app/contracts"
 	db "github.com/tuhalang/quiz-server/app/db/sqlc"
+	"github.com/tuhalang/quiz-server/app/util"
 	"log"
 	"math/big"
+	"os"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -14,12 +18,40 @@ import (
 
 // QuizEvent handles event of contract
 type QuizEvent struct {
-	store *db.Store
+	store  *db.Store
+	config *db.ChainConfig
 }
 
 // NewQuizEvent returns a new QuizEvent
 func NewQuizEvent(store *db.Store) (*QuizEvent, error) {
-	return &QuizEvent{store: store}, nil
+	event := QuizEvent{store: store}
+	event.loadConfig()
+	return &event, nil
+}
+
+func (event *QuizEvent) loadConfig() {
+	chainId, err := strconv.Atoi(os.Getenv("CHAIN_ID"))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	chainConfig, err := event.store.GetChainConfig(context.Background(), int32(chainId))
+	event.config = &chainConfig
+}
+
+func (event *QuizEvent) initInstance() (*store.Store, *util.QuizError) {
+	client, err := ethclient.Dial(event.config.RpcUrl)
+	if err != nil {
+		return nil, util.NewQuizError(500, err.Error())
+	}
+
+	address := common.HexToAddress(event.config.ContractAddress)
+	instance, err := store.NewStore(address, client)
+	if err != nil {
+		return nil, util.NewQuizError(500, err.Error())
+	}
+
+	return instance, nil
 }
 
 func initQuery(wss, address string, blockNumber int64) (*ethclient.Client, *ethereum.FilterQuery, error) {

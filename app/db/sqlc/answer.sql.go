@@ -10,23 +10,27 @@ import (
 
 const createAnswer = `-- name: CreateAnswer :one
 INSERT INTO answer (
-    id,
-    quiz_id,
-    owner,
-    content,
-    hash_content,
-    timestamp_created,
-    status
+    "id",
+    "index",
+    "quiz_id" ,
+    "owner" ,
+    "content",
+    "vote",
+    "hash_content",
+    "timestamp_created",
+    "status"
 ) values (
- $1, $2, $3, $4, $5, $6, $7
-) RETURNING id, quiz_id, owner, content, hash_content, timestamp_created, status, created_at
+ $1, $2, $3, $4, $5, $6, $7, $8, $9
+) RETURNING id, index, quiz_id, owner, content, vote, hash_content, timestamp_created, status, created_at
 `
 
 type CreateAnswerParams struct {
 	ID               string         `json:"id"`
+	Index            int32          `json:"index"`
 	QuizID           string         `json:"quiz_id"`
 	Owner            string         `json:"owner"`
 	Content          sql.NullString `json:"content"`
+	Vote             int32          `json:"vote"`
 	HashContent      string         `json:"hash_content"`
 	TimestampCreated int64          `json:"timestamp_created"`
 	Status           int32          `json:"status"`
@@ -35,9 +39,11 @@ type CreateAnswerParams struct {
 func (q *Queries) CreateAnswer(ctx context.Context, arg CreateAnswerParams) (Answer, error) {
 	row := q.db.QueryRowContext(ctx, createAnswer,
 		arg.ID,
+		arg.Index,
 		arg.QuizID,
 		arg.Owner,
 		arg.Content,
+		arg.Vote,
 		arg.HashContent,
 		arg.TimestampCreated,
 		arg.Status,
@@ -45,9 +51,11 @@ func (q *Queries) CreateAnswer(ctx context.Context, arg CreateAnswerParams) (Ans
 	var i Answer
 	err := row.Scan(
 		&i.ID,
+		&i.Index,
 		&i.QuizID,
 		&i.Owner,
 		&i.Content,
+		&i.Vote,
 		&i.HashContent,
 		&i.TimestampCreated,
 		&i.Status,
@@ -66,7 +74,7 @@ func (q *Queries) DeleteAnswer(ctx context.Context, id string) error {
 }
 
 const findAnswerById = `-- name: FindAnswerById :one
-SELECT id, quiz_id, owner, content, hash_content, timestamp_created, status, created_at FROM answer WHERE id = $1 LIMIT 1
+SELECT id, index, quiz_id, owner, content, vote, hash_content, timestamp_created, status, created_at FROM answer WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) FindAnswerById(ctx context.Context, id string) (Answer, error) {
@@ -74,9 +82,38 @@ func (q *Queries) FindAnswerById(ctx context.Context, id string) (Answer, error)
 	var i Answer
 	err := row.Scan(
 		&i.ID,
+		&i.Index,
 		&i.QuizID,
 		&i.Owner,
 		&i.Content,
+		&i.Vote,
+		&i.HashContent,
+		&i.TimestampCreated,
+		&i.Status,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateAnswerContent = `-- name: UpdateAnswerContent :one
+UPDATE answer SET content = $2 WHERE id = $1 RETURNING id, index, quiz_id, owner, content, vote, hash_content, timestamp_created, status, created_at
+`
+
+type UpdateAnswerContentParams struct {
+	ID      string         `json:"id"`
+	Content sql.NullString `json:"content"`
+}
+
+func (q *Queries) UpdateAnswerContent(ctx context.Context, arg UpdateAnswerContentParams) (Answer, error) {
+	row := q.db.QueryRowContext(ctx, updateAnswerContent, arg.ID, arg.Content)
+	var i Answer
+	err := row.Scan(
+		&i.ID,
+		&i.Index,
+		&i.QuizID,
+		&i.Owner,
+		&i.Content,
+		&i.Vote,
 		&i.HashContent,
 		&i.TimestampCreated,
 		&i.Status,
