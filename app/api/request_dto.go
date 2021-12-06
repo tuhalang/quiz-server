@@ -11,11 +11,15 @@ type listQuizzesRequest struct {
 }
 
 type updateQuizRequest struct {
-	ID               string `json:"id" binding:"required"`
-	Type             int32  `json:"type" biding:"required"`
-	Owner            string `json:"owner"`
-	Content          string `json:"content" binding:"required"`
-	Answer           string `json:"answer"`
-	ExpireDate       int32  `json:"expireDate"`
-	ExpireDateVoting int32  `json:"ExpireDateVoting"`
+	ID      string `json:"id" binding:"required"`
+	Owner   string `json:"owner"`
+	Content string `json:"content" binding:"required"`
+	Answer  string `json:"answer"`
+}
+
+type updateAnswerRequest struct {
+	ID      string `json:"id" binding:"required"`
+	QID     string `json:"qid" binding:"required"`
+	Index   int32  `json:"index" binding:"required"`
+	Content string `json:"content" binding:"required"`
 }

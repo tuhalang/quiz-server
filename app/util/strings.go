@@ -12,7 +12,31 @@ const (
 	addressLength = 40
 	dataLength    = 64
 	zeroChar      = 48
+
+	// StatusDraft is a status when quiz is unconfirmed
+	StatusDraft = -1
+	// StatusDone is a status when quiz is confirmed
+	StatusDone = 1
+	// AddressZero is an address(0)
+	AddressZero = "0x0000000000000000000000000000000000000000"
 )
+
+func HexTo32Bytes(id string) (*[32]byte, error) {
+	var rs [32]byte
+	src, err := hex.DecodeString(id[2:])
+	if err != nil {
+		return nil, err
+	}
+	copy(rs[:], src[:])
+	return &rs, nil
+}
+
+func ByteToString(data [32]byte) string {
+	var dst = make([]byte, 32)
+	copy(dst[:], data[:])
+	text := hex.EncodeToString(dst)
+	return prefix + text
+}
 
 // Keccak256 returns a keccak256(string)
 func Keccak256(content string) string {
