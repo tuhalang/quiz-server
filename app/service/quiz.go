@@ -58,3 +58,26 @@ func (service *QuizService) UpdateQuiz(reqQuiz db.Quiz) (*db.Quiz, *util.QuizErr
 
 	return &quiz, nil
 }
+
+func (service *QuizService) ListQuizzes(page int32, size int32) (int32, int32, []db.Quiz, *util.QuizError) {
+	totalElements, err := service.store.CountQuiz(context.Background())
+	if err != nil {
+		return 0, 0, nil, util.NewQuizError(500, err.Error())
+	}
+
+	totalPage := int32(totalElements / int64(size))
+	if totalElements%int64(size) != 0 {
+		totalPage++
+	}
+
+	offset := size * (page - 1)
+	quizzes, err := service.store.FindQuizzes(context.Background(), db.FindQuizzesParams{
+		Offset: offset,
+		Limit:  size,
+	})
+
+	if err != nil {
+		return 0, 0, nil, util.NewQuizError(500, err.Error())
+	}
+	return page, totalPage, quizzes, nil
+}

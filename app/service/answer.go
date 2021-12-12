@@ -42,3 +42,39 @@ func (service *QuizService) UpdateAnswer(reqAnswer db.Answer) (*db.Answer, *util
 
 	return &answer, nil
 }
+
+func (service *QuizService) ListAnswers(page int32, size int32, qid string) (int32, int32, []db.Answer, *util.QuizError) {
+	totalElements, err := service.store.CountAnswers(context.Background(), qid)
+	if err != nil {
+		return 0, 0, nil, util.NewQuizError(500, err.Error())
+	}
+
+	totalPage := int32(totalElements / int64(size))
+	if totalElements%int64(size) != 0 {
+		totalPage++
+	}
+
+	offset := size * (page - 1)
+	answers, err := service.store.FindAnswers(context.Background(), db.FindAnswersParams{
+		QuizID: qid,
+		Offset: offset,
+		Limit:  size,
+	})
+
+	if err != nil {
+		return 0, 0, nil, util.NewQuizError(500, err.Error())
+	}
+	return page, totalPage, answers, nil
+}
+
+func (service *QuizService) GetCorrectAnswer(quizId string) (*db.Answer, *util.QuizError) {
+	answer, err := service.store.GetAnswerCorrect(context.Background(), quizId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, util.NewQuizError(500, err.Error())
+	}
+
+	return &answer, nil
+}

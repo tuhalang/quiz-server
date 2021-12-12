@@ -1,2 +1,2 @@
 INSERT INTO chain_config(chain_id, contract_address, rpc_url, wss_url)
-VALUES ('89', '0x37E807fEEB047C1Fc04Bd1a6B1d35471B2C6bf03', 'https://rpc.testnet.tomochain.com', 'wss://ws.testnet.tomochain.com');
+VALUES ('89', '0x05777d59Faad7955634aA76BA4237a26f659A0FB', 'https://rpc.testnet.tomochain.com', 'wss://ws.testnet.tomochain.com');

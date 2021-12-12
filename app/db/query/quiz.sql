@@ -37,5 +37,11 @@ SELECT count(*) FROM quiz WHERE status = $1;
 -- name: FindQuizByStatus :many
 SELECT * FROM quiz WHERE status = $1 ORDER BY created_at DESC LIMIT $3 OFFSET $2;
 
+-- name: FindQuizzes :many
+SELECT * FROM quiz ORDER BY created_at DESC LIMIT $2 OFFSET $1;
+
 -- name: DeleteQuiz :exec
 DELETE FROM quiz WHERE ID = $1;
+
+-- name: UpdateResultQuiz :exec
+UPDATE quiz SET status = $2, winner = $3, prediction_winner = $4 where id = $1;

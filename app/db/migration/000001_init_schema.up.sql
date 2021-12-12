@@ -8,6 +8,7 @@ CREATE TABLE "quiz" (
   "hash_answer" varchar(255),
   "reward" bigint,
   "winner" varchar (255),
+  "prediction_winner" varchar(255),
   "duration" bigint not null,
   "duration_voting" bigint,
   "timestamp_created" bigint NOT NULL DEFAULT 0,
@@ -25,9 +26,11 @@ CREATE TABLE "answer" (
   "hash_content" varchar(255) NOT NULL,
   "timestamp_created" bigint NOT NULL DEFAULT 0,
   "status" int NOT NULL default -1,
+  "is_correct" int NOT NULL default 0,
   "created_at" timestamp DEFAULT (now())
 );
 
+CREATE INDEX idx_quiz_id on answer(quiz_id);
 ALTER TABLE "answer" ADD FOREIGN KEY ("quiz_id") REFERENCES "quiz" ("id");
 
 CREATE TABLE "chain_config" (

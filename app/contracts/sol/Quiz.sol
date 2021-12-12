@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 /**
@@ -103,9 +105,9 @@ interface IERC20Metadata is IERC20 {
 
 contract QuizGame {
 
-    IERC20Metadata token;
-    address owner;
-    uint256 tax;
+    IERC20Metadata public token;
+    address public owner;
+    uint256 public tax;
 
     struct Quiz {
         uint quizType;
@@ -117,6 +119,7 @@ contract QuizGame {
         uint256 reward;
         uint timestamp;
         address winner;
+        bytes32 predictionWinner;
         uint256 duration;
         uint256 durationVoting;
     }
@@ -134,6 +137,12 @@ contract QuizGame {
     mapping(bytes32 => Prediction[]) predictions;
     mapping(bytes32 => mapping(address => bool)) isVoted;
 
+    uint256 public totalReward;
+    uint256 public rewardVote;
+    uint256 public rewardQuiz;
+
+    bytes32 private key;
+
 
     event CreateQuiz(bytes32 indexed id, address indexed owner);
     event PredictAnswer(bytes32 indexed id, bytes32 indexed qid, address indexed owner, uint index);
@@ -142,9 +151,10 @@ contract QuizGame {
     event Finish(bytes32 indexed id);
     event Tax(bytes32 indexed id, address indexed payer, uint256 amount, uint timestamp);
     event Vote(bytes32 indexed id, bytes32 indexed qid, address indexed owner);
+    event RewardContributor(address indexed user, uint256 amount);
 
     modifier isExistsQuiz(bytes32 _id){
-        require(quizzes[_id].id.length > 0, "Not exists");
+        require(quizzes[_id].owner != address(0), "Not exists");
         _;
     }
     modifier onlyOwner(){
@@ -152,10 +162,14 @@ contract QuizGame {
         _;
     }
 
-    constructor(IERC20Metadata _token, uint256 _tax) {
+    constructor(IERC20Metadata _token, uint256 _tax, uint256 _totalReward, uint256 _rewardVote, uint256 _rewardQuiz, bytes32 _key) {
         token = _token;
         owner = msg.sender;
         tax = _tax;
+        totalReward = _totalReward;
+        rewardVote = _rewardVote;
+        rewardQuiz = _rewardQuiz;
+        key = _key;
     }
 
     function getQuiz(bytes32 _quizId) public view isExistsQuiz(_quizId) returns (Quiz memory) {
@@ -179,12 +193,19 @@ contract QuizGame {
         return tax;
     }
 
-    function createNewQuizWithAnswer(string memory _content, string memory _answer, uint256 _duration) public payable {
+    function createNewQuizWithAnswer(string memory _content, string memory _answer) public payable {
         if(msg.value <= 0) revert("reward must greater than 0");
-        bytes32 id = keccak256(abi.encodePacked(block.timestamp, _content, _answer, _duration, msg.value, msg.sender));
+        bytes32 id = keccak256(abi.encodePacked(block.timestamp, _content, _answer, msg.value, msg.sender));
         bytes32 content = keccak256(abi.encodePacked(_content));
-        bytes32 answer = keccak256(abi.encodePacked(_answer));
-        quizzes[id] = Quiz(1, id, msg.sender, content, answer, true, msg.value, block.timestamp, address(0), _duration, 0);
+        bytes32 answer = keccak256(abi.encodePacked(_answer, key));
+        quizzes[id] = Quiz(1, id, msg.sender, content, answer, true, msg.value, block.timestamp, address(0), 0, 0, 0);
+
+        if(rewardQuiz <= totalReward){
+            require(token.transfer(msg.sender, rewardQuiz), "not enough token");
+            totalReward -= rewardQuiz;
+            emit RewardContributor(msg.sender, rewardQuiz);
+        }
+
         emit CreateQuiz(id, msg.sender);
     }
 
@@ -192,14 +213,27 @@ contract QuizGame {
         if(msg.value <= 0) revert("reward must greater than 0");
         bytes32 id = keccak256(abi.encodePacked(block.timestamp, _content, _duration, _durationVoting, msg.value, msg.sender));
         bytes32 content = keccak256(abi.encodePacked(_content));
-        quizzes[id] = Quiz(2, id, msg.sender, content, "", true, msg.value, block.timestamp, address(0), _duration, _durationVoting);
+        quizzes[id] = Quiz(2, id, msg.sender, content, "", true, msg.value, block.timestamp, address(0), 0, _duration, _durationVoting);
+
+        if(rewardQuiz <= totalReward){
+            require(token.transfer(msg.sender, rewardQuiz), "not enough token");
+            totalReward -= rewardQuiz;
+            emit RewardContributor(msg.sender, rewardQuiz);
+        }
+
         emit CreateQuiz(id, msg.sender);
     }
 
     function voting(bytes32 _quizId, bytes32 _predictionId, uint _index) public isExistsQuiz(_quizId) {
         require(predictions[_quizId].length > _index, "index invalid");
-        require(quizzes[_quizId].quizType == 2, "Not allow vote");
+
+        Quiz memory quiz = quizzes[_quizId];
+
+        require(quiz.quizType == 2, "Not allow vote");
+        require(quiz.status, "not allow owner voting");
+
         require(isVoted[_predictionId][msg.sender] != true, "Only vote one times");
+        require(quiz.timestamp + quiz.durationVoting > block.timestamp, "Haven finished");
 
         if(tax > 0){
             require(token.transferFrom(msg.sender, owner, tax));
@@ -208,18 +242,29 @@ contract QuizGame {
 
         Prediction storage prediction = predictions[_quizId][_index];
         require(prediction.id == _predictionId, "prediction not found");
+        require(prediction.owner != msg.sender, "not allow voting");
+
         prediction.vote += 1;
         isVoted[_predictionId][msg.sender] = true;
+
+        if(rewardVote <= totalReward){
+            require(token.transfer(msg.sender, rewardVote), "not enough token");
+            totalReward -= rewardVote;
+            emit RewardContributor(msg.sender, rewardVote);
+        }
+
         emit Vote(_predictionId, _quizId, msg.sender);
     }
 
     function predictAnswer(bytes32 _quizId, string memory _answer) public isExistsQuiz(_quizId) {
         Quiz memory quiz = quizzes[_quizId];
-        require(quiz.timestamp + quiz.duration > block.timestamp, "Have finished");
 
-        if(quiz.owner == msg.sender){
-            revert("Not allow owner predict");
+        if(quiz.quizType == 2){
+            require(quiz.timestamp + quiz.duration > block.timestamp, "Have finished");
         }
+
+        require(quiz.status, "not allow predict");
+        require(quiz.owner != msg.sender, "Not allow owner predict");
 
         if(tax > 0){
             require(token.transferFrom(msg.sender, owner, tax), "not enough token");
@@ -228,21 +273,24 @@ contract QuizGame {
 
         bytes32 id = keccak256(abi.encodePacked(block.timestamp, _quizId, _answer, msg.sender));
         uint index = predictions[_quizId].length;
-        predictions[_quizId].push(Prediction(id, index, msg.sender, keccak256(abi.encodePacked(_answer)), block.timestamp, 0));
+        predictions[_quizId].push(Prediction(id, index, msg.sender, keccak256(abi.encodePacked(_answer, key)), block.timestamp, 0));
         emit PredictAnswer(id, _quizId, msg.sender, index);
     }
 
     function awards(bytes32 _quizId) public isExistsQuiz(_quizId) {
         Quiz storage quiz = quizzes[_quizId];
-        require(quiz.timestamp + quiz.duration <= block.timestamp, "Haven't finished");
+
+        if(quiz.quizType == 2){
+            require(quiz.timestamp + quiz.durationVoting <= block.timestamp, "Haven't finished");
+        }
 
         if(tax > 0){
             require(token.transferFrom(msg.sender, owner, tax));
             emit Tax(_quizId, msg.sender, tax, block.timestamp);
         }
 
-        quiz.status = false;
         address winner = address(0);
+        bytes32 predictionId;
         uint maxVote = 0;
 
         for(uint i=0; i<predictions[_quizId].length; i++){
@@ -250,12 +298,14 @@ contract QuizGame {
             if(quiz.quizType == 1){
                 if(prediction.answer == quiz.answer){
                     winner = prediction.owner;
+                    predictionId = prediction.id;
                     break;
                 }
             }else{
                 if(prediction.vote > maxVote){
                     maxVote = prediction.vote;
                     winner = prediction.owner;
+                    predictionId = prediction.id;
                 }
             }
 
@@ -264,14 +314,10 @@ contract QuizGame {
         if(winner != address(0)){
             (bool success, ) = payable(winner).call{value: quiz.reward}("");
             require(success, "Failed to send Tomo");
+            quiz.status = false;
+            quiz.winner = winner;
+            quiz.predictionWinner = predictionId;
             emit RewardToWinder(_quizId, winner, quiz.reward, block.timestamp);
-        }else{
-            (bool success, ) = payable(quiz.owner).call{value: quiz.reward}("");
-            require(success, "Failed to send Tomo");
-            emit RefundsToOwner(_quizId, quiz.owner, quiz.reward, block.timestamp);
         }
-
     }
-
-
 }

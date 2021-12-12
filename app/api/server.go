@@ -42,10 +42,14 @@ func (server *QuizServer) setupRouter() {
 
 	contextPath := os.Getenv("CONTEXT_PATH")
 	router.GET(contextPath+"/quizzes/:id", server.getQuiz)
+	router.PUT(contextPath+"/quizzes/:id", server.updateResultQuiz)
 	router.GET(contextPath+"/quizzes", server.listQuizzes)
 	router.POST(contextPath+"/quizzes", server.updateQuiz)
+	router.GET(contextPath+"/quizzes/winner/:id", server.getWinner)
 
 	router.POST(contextPath+"/answers", server.updateAnswer)
+	router.GET(contextPath+"/answers", server.listAnswers)
+	router.PUT(contextPath+"/answers", server.updateVote)
 
 	router.GET(contextPath+"/event/:token", server.getEvents)
 
@@ -53,5 +57,5 @@ func (server *QuizServer) setupRouter() {
 }
 
 func (server *QuizServer) Start(address string) error {
-	return server.router.Run(address)
+	return server.router.Run()
 }
