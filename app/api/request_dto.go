@@ -5,9 +5,8 @@ type getQuizRequest struct {
 }
 
 type listQuizzesRequest struct {
-	Status int32 `form:"status" binding:"required,min=0,max=1"`
-	Page   int32 `form:"page" binding:"required,min=1"`
-	Size   int32 `form:"size" biding:"required,min=5,max=30"`
+	Page int32 `form:"page" binding:"required,min=1"`
+	Size int32 `form:"size" biding:"required,min=5,max=30"`
 }
 
 type updateQuizRequest struct {
@@ -20,6 +19,18 @@ type updateQuizRequest struct {
 type updateAnswerRequest struct {
 	ID      string `json:"id" binding:"required"`
 	QID     string `json:"qid" binding:"required"`
-	Index   int32  `json:"index" binding:"required"`
+	Index   int32  `json:"index" binding:"min=0"`
 	Content string `json:"content" binding:"required"`
+}
+
+type updateVoteAnswer struct {
+	ID    string `json:"id" binding:"required"`
+	QID   string `json:"qid" binding:"required"`
+	Index int32  `json:"index" binding:"min=0"`
+}
+
+type listAnswersRequest struct {
+	QID  string `form:"qid" binding:"required"`
+	Page int32  `form:"page" binding:"required,min=1"`
+	Size int32  `form:"size" biding:"required,min=5,max=30"`
 }

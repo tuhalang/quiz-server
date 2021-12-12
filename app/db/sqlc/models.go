@@ -16,6 +16,7 @@ type Answer struct {
 	HashContent      string         `json:"hash_content"`
 	TimestampCreated int64          `json:"timestamp_created"`
 	Status           int32          `json:"status"`
+	IsCorrect        int32          `json:"is_correct"`
 	CreatedAt        sql.NullTime   `json:"created_at"`
 }
 
@@ -41,6 +42,7 @@ type Quiz struct {
 	HashAnswer       sql.NullString `json:"hash_answer"`
 	Reward           sql.NullInt64  `json:"reward"`
 	Winner           sql.NullString `json:"winner"`
+	PredictionWinner sql.NullString `json:"prediction_winner"`
 	Duration         int64          `json:"duration"`
 	DurationVoting   sql.NullInt64  `json:"duration_voting"`
 	TimestampCreated int64          `json:"timestamp_created"`

@@ -1,0 +1,7 @@
+version: "3.7"
+services:
+  server:
+    image: tuhalang/quiz_server:1.0
+    env_file: .env
+    ports:
+      - "8080:8080"

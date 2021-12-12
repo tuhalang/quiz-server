@@ -1,2 +1,2 @@
-DROP IF EXISTS answer;
-DROP IF EXISTS quiz;
+DROP IF EXISTS table answer;
+DROP IF EXISTS table quiz;

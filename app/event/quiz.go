@@ -14,9 +14,6 @@ import (
 )
 
 const (
-	chainIdTomoTestNet  = "89"
-	contractTomoTestNet = "0x37E807fEEB047C1Fc04Bd1a6B1d35471B2C6bf03"
-	tokenTomoTestNet    = "0xBF3Eaf4B19881e00586f279CC946d61142f88fA6"
 	eventCreateQuestion = "0x17bc07da768e0d57d22fda497a3a73369d9e20f00932b75abad87b7d7ba1ae12"
 	eventPredictAnswer  = "0xae14ab603f57373b14b9e221b39fb04c115320b56157c679eb0c5e74021160f6"
 	eventFinish         = "0x45ec5e670f1d367b5dc6f15b95818ac76831881de8f4db9df3d397a7ce8b9331"
@@ -44,6 +41,15 @@ func (event *QuizEvent) SnapshotPrediction(quizId string, predictionId string, i
 	}
 
 	if prediction.Status == util.StatusDone {
+		if int64(prediction.Vote) != predictionState.Vote.Int64() {
+			err := event.store.UpdateVoteNumber(context.Background(), db.UpdateVoteNumberParams{
+				ID:   predictionId,
+				Vote: int32(predictionState.Vote.Int64()),
+			})
+			if err != nil {
+				return util.NewQuizError(500, err.Error())
+			}
+		}
 		return nil
 	}
 
@@ -51,14 +57,10 @@ func (event *QuizEvent) SnapshotPrediction(quizId string, predictionId string, i
 		ID:               predictionId,
 		QuizID:           quizId,
 		Owner:            predictionState.Owner.String(),
-		Content:          sql.NullString{},
+		Content:          prediction.Content,
 		HashContent:      util.ByteToString(predictionState.Answer),
 		TimestampCreated: predictionState.Timestamp.Int64(),
 		Status:           util.StatusDone,
-	}
-
-	if util.Keccak256(prediction.Content.String) == util.ByteToString(predictionState.Answer) {
-		createAnswerParam.Content = prediction.Content
 	}
 
 	err = event.store.DeleteAnswer(context.Background(), predictionId)
@@ -90,6 +92,34 @@ func (event *QuizEvent) SnapshotQuiz(id string) *util.QuizError {
 	}
 
 	if quiz.Status == util.StatusDone {
+		if !quizState.Status {
+			winner := quizState.Winner.String()
+			predictionWinner := util.ByteToString(quizState.PredictionWinner)
+
+			err := event.store.UpdateResultQuiz(context.Background(), db.UpdateResultQuizParams{
+				ID:     quiz.ID,
+				Status: 0,
+				Winner: sql.NullString{
+					String: winner,
+					Valid:  true,
+				},
+				PredictionWinner: sql.NullString{
+					String: predictionWinner,
+					Valid:  true,
+				},
+			})
+
+			if err != nil {
+				return util.NewQuizError(500, err.Error())
+			}
+
+			err = event.store.UpdateAnswerCorrect(context.Background(), predictionWinner)
+			if err != nil {
+				return util.NewQuizError(500, err.Error())
+			}
+
+			return nil
+		}
 		return nil
 	}
 
